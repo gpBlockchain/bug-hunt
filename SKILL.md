@@ -1,34 +1,34 @@
 ---
-name: bench-optimize
-description: Use when optimizing any program against a benchmark - continuously tries code changes, keeps improvements, discards regressions, runs indefinitely without supervision
+name: bug-fix
+description: Use when continuously hunting and fixing bugs in a codebase — finds bugs via tests/linters/static-analysis, proposes fixes, verifies them, runs indefinitely without supervision
 ---
 
-# bench-optimize: Autonomous Benchmark Optimization
+# bug-fix: Autonomous Bug-Hunting and Fixing
 
 ## Overview
 
-Continuously optimize a program's benchmark score by proposing code changes, running benchmarks, and keeping improvements.
+Continuously find and fix bugs by proposing code fixes, running tests and linters, and keeping fixes that pass while discarding those that fail or introduce regressions.
 
 ## When to Use
 
-- User wants to optimize a program's performance (runtime, throughput, memory, etc.)
-- There is a measurable, reproducible benchmark
-- The optimization process should run autonomously
+- User wants to find and fix bugs autonomously
+- There is a test suite, linter, or other bug detection tool
+- The process should run autonomously without supervision
 
 ## Routing
 
 ```dot
 digraph routing {
-    "User invokes bench-optimize" [shape=doublecircle];
-    "bench-optimize.toml exists?" [shape=diamond];
+    "User invokes bug-fix" [shape=doublecircle];
+    "bug-fix.toml exists?" [shape=diamond];
     "Load setup.md" [shape=box];
     "User asks for analysis?" [shape=diamond];
     "Load analysis.md" [shape=box];
     "Load loop.md" [shape=box];
 
-    "User invokes bench-optimize" -> "bench-optimize.toml exists?";
-    "bench-optimize.toml exists?" -> "Load setup.md" [label="no"];
-    "bench-optimize.toml exists?" -> "User asks for analysis?" [label="yes"];
+    "User invokes bug-fix" -> "bug-fix.toml exists?";
+    "bug-fix.toml exists?" -> "Load setup.md" [label="no"];
+    "bug-fix.toml exists?" -> "User asks for analysis?" [label="yes"];
     "User asks for analysis?" -> "Load analysis.md" [label="yes"];
     "User asks for analysis?" -> "Load loop.md" [label="no"];
 }
@@ -36,27 +36,28 @@ digraph routing {
 
 ### First run (no config)
 
-Follow `setup.md` to interactively configure the benchmark, editable scope, and baseline.
+Follow `setup.md` to interactively configure the bug detection commands, editable scope, and baseline.
 
 ### Subsequent runs (config exists)
 
-Follow `loop.md` to run the experiment loop. The agent reads the config, context note, and recent history, then enters the autonomous optimization loop.
+Follow `loop.md` to run the bug-hunting loop. The agent reads the config, context note, and recent history, then enters the autonomous fix loop.
 
 ### Analysis
 
-Follow `analysis.md` when the user asks for a summary of results, progress charts, or recommendations.
+Follow `analysis.md` when the user asks for a summary of results, fixed bugs, or recommendations.
 
 ## Key Files
 
 | File | Tracked in git? | Purpose |
 |------|-----------------|---------|
-| `bench-optimize.toml` | Yes | Configuration: benchmark command, metric, scope, thresholds |
-| `bench-optimize-context.md` | Yes | Agent's living knowledge base: what works, what doesn't, ideas |
-| `results.tsv` | No (gitignored) | Structured experiment log with metrics and descriptions |
+| `bug-fix.toml` | Yes | Configuration: detection commands, metric, scope, timeouts |
+| `bug-fix-context.md` | Yes | Agent's living knowledge base: what works, what doesn't, known bugs |
+| `results.tsv` | No (gitignored) | Structured fix log with bug counts and descriptions |
 
 ## Quick Reference
 
-- **Keep** a change: metric improved beyond variance threshold
-- **Discard** a change: metric equal, worse, or within noise
-- **Crash**: benchmark failed to run — fix if trivial, skip if fundamental
-- **Branch**: `bench-optimize/<tag>` — each experiment is a commit, discards are `git reset --hard`
+- **fixed**: fix applied and all detection commands pass
+- **not-fixed**: fix didn't resolve the bug or detection commands still fail
+- **regression**: fix caused previously passing tests to fail
+- **crash**: detection command failed to run — fix if trivial, skip if fundamental
+- **Branch**: `bug-fix/<tag>` — each fix attempt is a commit, discards are `git reset --hard`

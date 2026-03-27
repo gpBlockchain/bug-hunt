@@ -1,14 +1,14 @@
-# Analysis: Summarize Experiment Results
+# Analysis: Summarize Bug-Hunting Results
 
 ## Overview
 
-Generate a summary report of the benchmark optimization run. Use when the user asks about progress, results, or recommendations.
+Generate a summary report of the bug-hunting run. Use when the user asks about progress, fixed bugs, or recommendations.
 
 ## Read the Data
 
 1. Read `results.tsv` — parse all rows
-2. Read `bench-optimize.toml` — get metric name, direction, baseline info
-3. Read `bench-optimize-context.md` — get current understanding
+2. Read `bug-fix.toml` — get metric name, detection commands, baseline info
+3. Read `bug-fix-context.md` — get current understanding, known bugs, and what was tried
 
 ## Generate Report
 
@@ -17,66 +17,69 @@ Generate a summary report of the benchmark optimization run. Use when the user a
 Compute and display:
 
 ```
-## Optimization Run: <tag>
+## Bug-Fix Run: <tag>
 
-**Total experiments:** <N>
-**Kept:** <N> (<pct>%)    **Discarded:** <N> (<pct>%)    **Crashed:** <N> (<pct>%)
+**Total fix attempts:** <N>
+**Fixed:** <N> (<pct>%)    **Not-fixed:** <N> (<pct>%)    **Regression:** <N> (<pct>%)    **Crashed:** <N> (<pct>%)
 
-**Baseline <metric_name>:** <value>
-**Current best <metric_name>:** <value>
-**Total improvement:** <delta_pct>% (<direction>)
+**Initial bug count (baseline):** <value>
+**Current bug count:** <value>
+**Total bugs fixed:** <delta>
 ```
 
 ### Timeline
 
-List experiments in order, highlighting keeps:
+List fix attempts in order, highlighting fixed bugs:
 
 ```
-## Experiment Timeline
+## Fix Timeline
 
-| # | Status | Metric | Delta | Category | Description |
-|---|--------|--------|-------|----------|-------------|
-| 1 | keep   | 1234   | -     | baseline | baseline    |
-| 2 | keep   | 1198   | +2.9% | allocation | pre-allocate Vec in hot loop |
-| 3 | discard| 1245   | -3.9% | caching  | lazy_static lookup table |
+| # | Status      | Bugs | Delta | Category       | Description                        |
+|---|-------------|------|-------|----------------|------------------------------------|
+| 1 | baseline    | 12   | -     | baseline       | initial bug count                  |
+| 2 | fixed       | 10   | -2    | null-check     | add nil guard in user lookup       |
+| 3 | not-fixed   | 12   | 0     | logic-error    | rewrite sort comparison function   |
+| 4 | regression  | 13   | +1    | error-handling | wrap DB call in try/catch          |
 | ...
 ```
 
-Mark the current running best with an indicator.
+Mark the current lowest bug count with an indicator.
 
 ### Category Breakdown
 
 ```
-## Approach Categories
+## Bug Categories
 
-| Category | Attempts | Kept | Success Rate | Best Delta |
-|----------|----------|------|--------------|------------|
-| allocation | 3 | 2 | 67% | +4.2% |
-| algorithm  | 5 | 1 | 20% | +1.1% |
-| caching    | 2 | 0 | 0%  | -     |
+| Category        | Attempts | Fixed | Success Rate | Bugs Resolved |
+|-----------------|----------|-------|--------------|---------------|
+| null-check      | 3        | 2     | 67%          | 3             |
+| logic-error     | 5        | 1     | 20%          | 1             |
+| error-handling  | 2        | 0     | 0%           | -             |
 ```
 
 ### Key Findings
 
-Summarize from `bench-optimize-context.md`:
-- **Top improvements**: List the kept changes ranked by delta
+Summarize from `bug-fix-context.md`:
+- **Top fixes**: List the resolved bugs ranked by impact (bugs fixed per attempt)
 - **Failed approaches**: Brief summary of what didn't work and why
-- **Remaining opportunities**: Ideas from the backlog not yet tried
+- **Remaining bugs**: Known bugs not yet fixed (from "Known Bugs" in context)
+- **Potential bugs**: Suspected issues found via code review that aren't yet confirmed by tests
 
 ### Recommendations
 
 Based on the data:
-- Which categories are most promising?
-- What approach would you try next?
-- Is there diminishing returns? (last N experiments all discarded)
-- Should the variance threshold be adjusted? (if many borderline cases)
+- Which bug categories are most common in this codebase?
+- What areas of code are most bug-prone?
+- Are there systemic issues (e.g., consistently missing error handling)?
+- Are there remaining TODO/FIXME comments that indicate known issues?
+- Should fuzzing or additional static analysis be added to the detection commands?
 
 ## Optional: Compare Branches
 
-If multiple run tags exist (multiple `bench-optimize/*` branches):
+If multiple run tags exist (multiple `bug-fix/*` branches):
 
 ```bash
-git branch --list 'bench-optimize/*'
+git branch --list 'bug-fix/*'
 ```
 
-Compare final metrics across runs. Show which run achieved the best result and what approaches were unique to each.
+Compare final bug counts across runs. Show which run resolved the most bugs and what fix approaches were unique to each.
