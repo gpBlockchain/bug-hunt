@@ -2,113 +2,147 @@
 
 ## Overview
 
-Guide the user through configuring a benchmark optimization run. This only runs once — subsequent runs use the saved config.
+Guide the user through configuring the test-writing and bug-fixing run. This only runs once — subsequent runs use the saved config.
 
 ## Setup Flow
 
 Ask the user these questions **one at a time**. Use multiple-choice when possible.
 
-### Step 1: Benchmark Command
+### Step 1: Test Command
 
-Ask: "What command runs your benchmark?"
+Ask: "What command runs your tests?"
 
 Examples to suggest:
-- `cargo bench --bench <name>`
-- `python -m pytest tests/bench.py --benchmark-only`
-- `go test -bench=. ./...`
-- `hyperfine './my_program'`
+- `cargo test` / `pytest` / `go test ./...` / `npm test` / `jest`
 - Custom command
 
 Run the command once to verify it works. Capture the full output.
 
-### Step 2: Metric Extraction
+### Step 2: Additional Detection Commands (Optional)
 
-Show the benchmark output to the user. Ask: "Which number is the metric to optimize?"
+Ask: "Any additional bug detection commands besides tests? (linters, static analysis, etc.)"
 
-Help them identify the metric. Then construct a regex pattern that extracts it from the output. Verify the regex works by testing it against the captured output.
+Examples to suggest:
+- `cargo clippy` / `pylint src/` / `eslint src/` (linters)
+- `mypy src/` / `tsc --noEmit` (type checking)
+- None — tests only
+
+### Step 3: Test Framework and Conventions
+
+Ask: "What test framework do you use?"
+
+Auto-detect from the project or ask:
+- **Rust**: `#[test]`, `#[cfg(test)]` modules
+- **Python**: `pytest` (files `test_*.py` or `*_test.py`), `unittest`
+- **Go**: `_test.go` files, `func Test...`
+- **JavaScript/TypeScript**: `jest`, `vitest`, `mocha` (files `*.test.ts`, `*.spec.ts`)
+- Other
+
+Ask: "Where should new test files be placed?" (e.g., `tests/`, `src/tests/`, alongside source files)
+
+### Step 4: Bug Metric Extraction
+
+Show the test command output. Ask: "How should I count the number of bugs/failures?"
+
+Options:
+- **Failing tests**: number of tests that fail (e.g., `FAILED 3` from pytest, `FAIL` lines from go test)
+- **Lint warnings/errors**: number of warnings or errors reported by the linter
+- **Regex pattern**: provide a regex to extract a bug count from the command output
+
+Construct a regex pattern that extracts the count from the output. Verify the regex works.
 
 Common patterns:
-- `time:\s+\[([\d.]+)` — Rust criterion
-- `([\d.]+)\s+ns/iter` — Rust built-in bench
-- `Min:\s+([\d.]+)` — hyperfine
+- `(\d+) failed` — pytest failed test count
+- `(\d+) error` — compiler/linter error count
+- `^(FAIL|FAIL\s)` — go test failure lines (count matches)
 - Custom regex
 
-Ask: "What should we call this metric?" (e.g., `median_ns`, `throughput_ops`, `p99_latency_ms`)
+Direction is always **lower is better** — fewer failing tests means progress.
 
-### Step 3: Optimization Direction
+### Step 5: Editable Scope
 
-Ask: "Is lower better (latency, time) or higher better (throughput, ops/sec)?"
+Ask: "What files/directories can I modify?"
 
-### Step 4: Editable Scope
+**Important**: For this skill, both source files AND test files should generally be editable. Suggest:
+- Source code directories (for bug fixes)
+- Test directories (for writing new tests)
 
-Ask: "What files/directories can I modify to optimize this?"
+Also ask: "Any files/directories that are strictly off-limits?" (build configs, generated files, vendor dependencies).
 
-Suggest a reasonable default based on the project structure. Also ask: "Any files/directories that are strictly off-limits?" (benchmarks themselves, tests, build configs should generally be read-only).
+### Step 6: Safety Timeout
 
-### Step 5: Safety Timeout
+Ask: "How long should I wait before killing a runaway test command? (default: 5 minutes)"
 
-Ask: "How long should I wait before killing a runaway benchmark? (default: 5x the baseline runtime)"
+### Step 7: Run Tag
 
-### Step 6: Run Tag
-
-Propose a tag based on today's date (e.g., `mar27`). The branch `bench-optimize/<tag>` must not already exist.
+Propose a tag based on today's date (e.g., `mar27`). The branch `bug-fix/<tag>` must not already exist.
 
 ## Generate Config
 
-Write `bench-optimize.toml`:
+Write `bug-fix.toml`:
 
 ```toml
-[benchmark]
-command = "<user's benchmark command>"
+[testing]
+test_command = "<test command>"
+additional_commands = ["<lint command>", "<type check command>"]
 metric_pattern = "<regex with capture group>"
 metric_name = "<metric name>"
-direction = "<lower|higher>"
 timeout_seconds = <timeout>
 
-[scope]
-editable = ["<directories or files>"]
-readonly = ["<off-limits paths>"]
-branch_prefix = "bench-optimize"
+[framework]
+name = "<pytest|jest|go-test|cargo-test|...>"
+test_dir = "<where test files go>"
+test_pattern = "<file naming pattern, e.g. test_*.py>"
 
-[experiment]
+[scope]
+editable_src = ["<source directories>"]
+editable_tests = ["<test directories>"]
+readonly = ["<off-limits paths>"]
+branch_prefix = "bug-fix"
+
+[run]
 tag = "<tag>"
-max_consecutive_fails = 3
-baseline_runs = 3
-variance_threshold_pct = <computed after baseline>
+max_consecutive_not_fixed = 3
 ```
 
 ## Establish Baseline
 
-1. Create git branch: `git checkout -b bench-optimize/<tag>`
-2. Run the benchmark `baseline_runs` times (default 3)
-3. Record each result
-4. Compute variance: `(max - min) / mean * 100`
-5. Set `variance_threshold_pct` to `max(1.0, 2 * computed_variance)` — improvements must exceed this to count
-6. Report to user: "Baseline metric: X (variance: Y%). Changes must improve by at least Z% to be kept."
+1. Create git branch: `git checkout -b bug-fix/<tag>`
+2. Run all test/detection commands once
+3. Record: total tests, passing tests, failing tests, lint errors
+4. Report to user: "Baseline: X tests (Y passing, Z failing). Starting hunt."
 
 ## Initialize Results Log
 
 Create `results.tsv` with header and baseline entry:
 
 ```
-commit	metric	delta_pct	status	description	hypothesis	approach_category
-<hash>	<value>	0.0	keep	baseline	establish baseline performance	baseline
+commit	type	tests_total	tests_failing	delta	status	description	hypothesis	category
+<hash>	baseline	<total>	<failing>	0	baseline	initial state	establish baseline	baseline
 ```
 
 Add `results.tsv` to `.gitignore` if not already there.
 
 ## Build Initial Context
 
-Read the editable files thoroughly. Write `bench-optimize-context.md`:
+Read the editable files thoroughly. Write `bug-fix-context.md`:
 
 ```markdown
-# Benchmark Optimization Context
+# Bug-Fix Context
 
 ## Project Understanding
-<Brief description of the codebase, what the program does, and what the benchmark measures>
+<Brief description of the codebase, what it does, and what the tests cover>
 
-## Architecture Notes
-<Key files, hot paths, data flow relevant to performance>
+## Test Coverage Gaps
+<Areas of the code with poor or no test coverage>
+1. ...
+2. ...
+3. ...
+
+## Known Bugs
+<List of bugs identified from the baseline run — failing tests, lint errors, etc.>
+1. ...
+2. ...
 
 ## What Works
 (None yet — baseline established)
@@ -116,28 +150,33 @@ Read the editable files thoroughly. Write `bench-optimize-context.md`:
 ## What Doesn't Work
 (None yet)
 
-## Ideas Backlog
-<Initial optimization ideas based on reading the code, ordered by expected impact>
+## Ideas Backlog — Tests to Write
+<Areas to add unit tests, ordered by expected impact>
 1. ...
 2. ...
 3. ...
 
-## Approach Categories Tried
-| Category | Attempts | Kept | Last Tried |
-|----------|----------|------|------------|
+## Ideas Backlog — Bugs to Fix
+<Fix ideas based on reading the code and errors>
+1. ...
+2. ...
+
+## Categories Tried
+| Category | Type | Attempts | Kept | Last Tried |
+|----------|------|----------|------|------------|
 ```
 
-Commit `bench-optimize.toml` and `bench-optimize-context.md` to git.
+Commit `bug-fix.toml` and `bug-fix-context.md` to git.
 
 ## Confirm and Go
 
 Show the user a summary:
-- Benchmark command
-- Metric: name, direction, baseline value, variance threshold
-- Editable scope
+- Test command and framework
+- Metric: name, baseline value (total tests, failing tests)
+- Editable scope (source + tests)
 - Branch name
-- Number of initial ideas
+- Number of coverage gaps / known bugs / initial ideas
 
-Ask: "Ready to start the optimization loop?"
+Ask: "Ready to start? The agent will continuously write tests and fix bugs."
 
 On confirmation, proceed to `loop.md`.

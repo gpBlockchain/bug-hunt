@@ -1,34 +1,35 @@
 ---
-name: bench-optimize
-description: Use when optimizing any program against a benchmark - continuously tries code changes, keeps improvements, discards regressions, runs indefinitely without supervision
+name: bug-fix
+description: Use when continuously writing unit tests and fixing bugs in a codebase — writes tests to find bugs, fixes them, verifies, runs indefinitely without supervision
 ---
 
-# bench-optimize: Autonomous Benchmark Optimization
+# bug-fix: Autonomous Unit-Test Writing and Bug Fixing
 
 ## Overview
 
-Continuously optimize a program's benchmark score by proposing code changes, running benchmarks, and keeping improvements.
+Continuously write unit tests to discover bugs and fix them. The agent adds tests to increase coverage, finds bugs when tests fail, proposes fixes, and keeps fixes that pass — all running autonomously.
 
 ## When to Use
 
-- User wants to optimize a program's performance (runtime, throughput, memory, etc.)
-- There is a measurable, reproducible benchmark
-- The optimization process should run autonomously
+- User wants to continuously add unit tests and fix bugs autonomously
+- There is a test framework and test suite (or one can be bootstrapped)
+- The codebase has low test coverage or known gaps
+- The process should run autonomously without supervision
 
 ## Routing
 
 ```dot
 digraph routing {
-    "User invokes bench-optimize" [shape=doublecircle];
-    "bench-optimize.toml exists?" [shape=diamond];
+    "User invokes bug-fix" [shape=doublecircle];
+    "bug-fix.toml exists?" [shape=diamond];
     "Load setup.md" [shape=box];
     "User asks for analysis?" [shape=diamond];
     "Load analysis.md" [shape=box];
     "Load loop.md" [shape=box];
 
-    "User invokes bench-optimize" -> "bench-optimize.toml exists?";
-    "bench-optimize.toml exists?" -> "Load setup.md" [label="no"];
-    "bench-optimize.toml exists?" -> "User asks for analysis?" [label="yes"];
+    "User invokes bug-fix" -> "bug-fix.toml exists?";
+    "bug-fix.toml exists?" -> "Load setup.md" [label="no"];
+    "bug-fix.toml exists?" -> "User asks for analysis?" [label="yes"];
     "User asks for analysis?" -> "Load analysis.md" [label="yes"];
     "User asks for analysis?" -> "Load loop.md" [label="no"];
 }
@@ -36,27 +37,30 @@ digraph routing {
 
 ### First run (no config)
 
-Follow `setup.md` to interactively configure the benchmark, editable scope, and baseline.
+Follow `setup.md` to interactively configure the test commands, test framework, editable scope, and baseline.
 
 ### Subsequent runs (config exists)
 
-Follow `loop.md` to run the experiment loop. The agent reads the config, context note, and recent history, then enters the autonomous optimization loop.
+Follow `loop.md` to run the test-writing and bug-fixing loop. The agent reads the config, context note, and recent history, then enters the autonomous loop.
 
 ### Analysis
 
-Follow `analysis.md` when the user asks for a summary of results, progress charts, or recommendations.
+Follow `analysis.md` when the user asks for a summary of results, tests written, bugs fixed, or recommendations.
 
 ## Key Files
 
 | File | Tracked in git? | Purpose |
 |------|-----------------|---------|
-| `bench-optimize.toml` | Yes | Configuration: benchmark command, metric, scope, thresholds |
-| `bench-optimize-context.md` | Yes | Agent's living knowledge base: what works, what doesn't, ideas |
-| `results.tsv` | No (gitignored) | Structured experiment log with metrics and descriptions |
+| `bug-fix.toml` | Yes | Configuration: test commands, framework, scope, timeouts |
+| `bug-fix-context.md` | Yes | Agent's living knowledge base: coverage gaps, known bugs, what works |
+| `results.tsv` | No (gitignored) | Structured log of tests written, bugs found, and fixes attempted |
 
 ## Quick Reference
 
-- **Keep** a change: metric improved beyond variance threshold
-- **Discard** a change: metric equal, worse, or within noise
-- **Crash**: benchmark failed to run — fix if trivial, skip if fundamental
-- **Branch**: `bench-optimize/<tag>` — each experiment is a commit, discards are `git reset --hard`
+- **test-added**: new unit test(s) written and all existing tests still pass
+- **bug-found**: new test(s) written that expose a bug (test fails, confirming the bug exists)
+- **fixed**: bug fix applied and all tests pass (including the new test that found the bug)
+- **not-fixed**: fix didn't resolve the bug or tests still fail
+- **regression**: fix caused previously passing tests to fail
+- **crash**: test command failed to run — fix if trivial, skip if fundamental
+- **Branch**: `bug-fix/<tag>` — each attempt is a commit, discards are `git reset --hard`
