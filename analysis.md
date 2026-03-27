@@ -1,14 +1,14 @@
-# Analysis: Summarize Bug-Hunting Results
+# Analysis: Summarize Test-Writing and Bug-Fixing Results
 
 ## Overview
 
-Generate a summary report of the bug-hunting run. Use when the user asks about progress, fixed bugs, or recommendations.
+Generate a summary report of the test-writing and bug-fixing run. Use when the user asks about progress, tests written, bugs fixed, or recommendations.
 
 ## Read the Data
 
 1. Read `results.tsv` — parse all rows
-2. Read `bug-fix.toml` — get metric name, detection commands, baseline info
-3. Read `bug-fix-context.md` — get current understanding, known bugs, and what was tried
+2. Read `bug-fix.toml` — get test commands, framework, baseline info
+3. Read `bug-fix-context.md` — get current understanding, coverage gaps, and known bugs
 
 ## Generate Report
 
@@ -19,36 +19,53 @@ Compute and display:
 ```
 ## Bug-Fix Run: <tag>
 
+### Tests Written
+**Total test iterations:** <N>
+**Tests added:** <N> (new tests that pass)
+**Bugs found by new tests:** <N> (new tests that exposed bugs)
+
+### Bugs Fixed
 **Total fix attempts:** <N>
 **Fixed:** <N> (<pct>%)    **Not-fixed:** <N> (<pct>%)    **Regression:** <N> (<pct>%)    **Crashed:** <N> (<pct>%)
 
-**Initial bug count (baseline):** <value>
-**Current bug count:** <value>
-**Total bugs fixed:** <delta>
+### Overall Progress
+**Baseline:** <X> tests (<Y> failing)
+**Current:** <X> tests (<Y> failing)
+**Tests added:** <delta_tests>
+**Bugs fixed:** <delta_failing>
 ```
 
 ### Timeline
 
-List fix attempts in order, highlighting fixed bugs:
+List all iterations in order:
 
 ```
-## Fix Timeline
+## Timeline
 
-| # | Status      | Bugs | Delta | Category       | Description                        |
-|---|-------------|------|-------|----------------|------------------------------------|
-| 1 | baseline    | 12   | -     | baseline       | initial bug count                  |
-| 2 | fixed       | 10   | -2    | null-check     | add nil guard in user lookup       |
-| 3 | not-fixed   | 12   | 0     | logic-error    | rewrite sort comparison function   |
-| 4 | regression  | 13   | +1    | error-handling | wrap DB call in try/catch          |
+| # | Type       | Status     | Total Tests | Failing | Delta | Category       | Description                            |
+|---|------------|------------|-------------|---------|-------|----------------|----------------------------------------|
+| 1 | baseline   | baseline   | 45          | 3       | -     | baseline       | initial state                          |
+| 2 | write-test | test-added | 47          | 3       | 0     | edge-case      | add boundary tests for parse_date()    |
+| 3 | write-test | bug-found  | 49          | 5       | +2    | null-input     | test nil handling in user_lookup()     |
+| 4 | fix-bug    | fixed      | 49          | 3       | -2    | null-check     | add nil guard in user_lookup()         |
+| 5 | fix-bug    | not-fixed  | 49          | 3       | 0     | logic-error    | rewrite sort comparison                |
 | ...
 ```
 
-Mark the current lowest bug count with an indicator.
+Mark the current lowest failing count and highest test count with indicators.
 
 ### Category Breakdown
 
 ```
-## Bug Categories
+## Test-Writing Categories
+
+| Category     | Tests Written | Bugs Found | Coverage Impact |
+|--------------|---------------|------------|-----------------|
+| edge-case    | 5             | 2          | high            |
+| null-input   | 3             | 1          | medium          |
+| error-path   | 2             | 0          | low             |
+
+## Bug-Fix Categories
 
 | Category        | Attempts | Fixed | Success Rate | Bugs Resolved |
 |-----------------|----------|-------|--------------|---------------|
@@ -60,19 +77,22 @@ Mark the current lowest bug count with an indicator.
 ### Key Findings
 
 Summarize from `bug-fix-context.md`:
-- **Top fixes**: List the resolved bugs ranked by impact (bugs fixed per attempt)
+- **Tests added**: Summary of new test coverage areas
+- **Top fixes**: List the resolved bugs ranked by impact
 - **Failed approaches**: Brief summary of what didn't work and why
-- **Remaining bugs**: Known bugs not yet fixed (from "Known Bugs" in context)
-- **Potential bugs**: Suspected issues found via code review that aren't yet confirmed by tests
+- **Remaining coverage gaps**: Areas still lacking tests
+- **Remaining bugs**: Known bugs not yet fixed
+- **Potential bugs**: Suspected issues found via code review not yet confirmed by tests
 
 ### Recommendations
 
 Based on the data:
-- Which bug categories are most common in this codebase?
+- Which areas of code have the most coverage gaps?
+- Which bug categories are most common?
 - What areas of code are most bug-prone?
 - Are there systemic issues (e.g., consistently missing error handling)?
-- Are there remaining TODO/FIXME comments that indicate known issues?
-- Should fuzzing or additional static analysis be added to the detection commands?
+- What types of tests are most effective at finding bugs?
+- Are there remaining TODO/FIXME comments that need tests?
 
 ## Optional: Compare Branches
 
@@ -82,4 +102,4 @@ If multiple run tags exist (multiple `bug-fix/*` branches):
 git branch --list 'bug-fix/*'
 ```
 
-Compare final bug counts across runs. Show which run resolved the most bugs and what fix approaches were unique to each.
+Compare across runs: total tests added, bugs found, bugs fixed. Show which run was most productive and what approaches were unique to each.

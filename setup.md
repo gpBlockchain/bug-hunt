@@ -2,57 +2,78 @@
 
 ## Overview
 
-Guide the user through configuring a bug-hunting run. This only runs once — subsequent runs use the saved config.
+Guide the user through configuring the test-writing and bug-fixing run. This only runs once — subsequent runs use the saved config.
 
 ## Setup Flow
 
 Ask the user these questions **one at a time**. Use multiple-choice when possible.
 
-### Step 1: Bug Detection Commands
+### Step 1: Test Command
 
-Ask: "What command(s) detect bugs in your codebase?"
+Ask: "What command runs your tests?"
 
 Examples to suggest:
-- `cargo test` / `pytest` / `go test ./...` (test suites)
-- `cargo clippy` / `pylint src/` / `eslint src/` (linters)
-- `cargo-fuzz run <target>` / `atheris` / `pythonfuzz` (fuzzing)
+- `cargo test` / `pytest` / `go test ./...` / `npm test` / `jest`
 - Custom command
 
-Multiple commands can be configured (e.g., run tests first, then lint). Run each command once to verify it works. Capture the full output.
+Run the command once to verify it works. Capture the full output.
 
-### Step 2: Bug Metric Extraction
+### Step 2: Additional Detection Commands (Optional)
 
-Show the command output to the user. Ask: "How should I count the number of bugs?"
+Ask: "Any additional bug detection commands besides tests? (linters, static analysis, etc.)"
+
+Examples to suggest:
+- `cargo clippy` / `pylint src/` / `eslint src/` (linters)
+- `mypy src/` / `tsc --noEmit` (type checking)
+- None — tests only
+
+### Step 3: Test Framework and Conventions
+
+Ask: "What test framework do you use?"
+
+Auto-detect from the project or ask:
+- **Rust**: `#[test]`, `#[cfg(test)]` modules
+- **Python**: `pytest` (files `test_*.py` or `*_test.py`), `unittest`
+- **Go**: `_test.go` files, `func Test...`
+- **JavaScript/TypeScript**: `jest`, `vitest`, `mocha` (files `*.test.ts`, `*.spec.ts`)
+- Other
+
+Ask: "Where should new test files be placed?" (e.g., `tests/`, `src/tests/`, alongside source files)
+
+### Step 4: Bug Metric Extraction
+
+Show the test command output. Ask: "How should I count the number of bugs/failures?"
 
 Options:
 - **Failing tests**: number of tests that fail (e.g., `FAILED 3` from pytest, `FAIL` lines from go test)
 - **Lint warnings/errors**: number of warnings or errors reported by the linter
 - **Regex pattern**: provide a regex to extract a bug count from the command output
 
-Construct a regex pattern that extracts a bug count from the output. Verify the regex works by testing it against the captured output.
+Construct a regex pattern that extracts the count from the output. Verify the regex works.
 
 Common patterns:
 - `(\d+) failed` — pytest failed test count
-- `FAILED (\d+)` — alternative pytest format
 - `(\d+) error` — compiler/linter error count
 - `^(FAIL|FAIL\s)` — go test failure lines (count matches)
 - Custom regex
 
-Ask: "What should we call this metric?" (e.g., `failing_tests`, `lint_errors`, `bug_count`)
+Direction is always **lower is better** — fewer failing tests means progress.
 
-Direction is always **lower is better** — fewer bugs means progress.
+### Step 5: Editable Scope
 
-### Step 3: Editable Scope
+Ask: "What files/directories can I modify?"
 
-Ask: "What files/directories can I modify to fix bugs?"
+**Important**: For this skill, both source files AND test files should generally be editable. Suggest:
+- Source code directories (for bug fixes)
+- Test directories (for writing new tests)
 
-Suggest a reasonable default based on the project structure. Also ask: "Any files/directories that are strictly off-limits?" (tests themselves should generally be read-only unless the user says otherwise; also exclude build configs, generated files).
+Also ask: "Any files/directories that are strictly off-limits?" (build configs, generated files, vendor dependencies).
 
-### Step 4: Safety Timeout
+### Step 6: Safety Timeout
 
-Ask: "How long should I wait before killing a runaway test/lint command? (default: 5 minutes)"
+Ask: "How long should I wait before killing a runaway test command? (default: 5 minutes)"
 
-### Step 5: Run Tag
+### Step 7: Run Tag
 
 Propose a tag based on today's date (e.g., `mar27`). The branch `bug-fix/<tag>` must not already exist.
 
@@ -61,37 +82,43 @@ Propose a tag based on today's date (e.g., `mar27`). The branch `bug-fix/<tag>` 
 Write `bug-fix.toml`:
 
 ```toml
-[detection]
-commands = ["<detection command 1>", "<detection command 2>"]
+[testing]
+test_command = "<test command>"
+additional_commands = ["<lint command>", "<type check command>"]
 metric_pattern = "<regex with capture group>"
 metric_name = "<metric name>"
 timeout_seconds = <timeout>
 
+[framework]
+name = "<pytest|jest|go-test|cargo-test|...>"
+test_dir = "<where test files go>"
+test_pattern = "<file naming pattern, e.g. test_*.py>"
+
 [scope]
-editable = ["<directories or files>"]
+editable_src = ["<source directories>"]
+editable_tests = ["<test directories>"]
 readonly = ["<off-limits paths>"]
 branch_prefix = "bug-fix"
 
 [run]
 tag = "<tag>"
 max_consecutive_not_fixed = 3
-baseline_runs = 1
 ```
 
 ## Establish Baseline
 
 1. Create git branch: `git checkout -b bug-fix/<tag>`
-2. Run all detection commands once
-3. Record the bug count (baseline metric)
-4. Report to user: "Baseline bug count: X bugs detected. Starting hunt."
+2. Run all test/detection commands once
+3. Record: total tests, passing tests, failing tests, lint errors
+4. Report to user: "Baseline: X tests (Y passing, Z failing). Starting hunt."
 
 ## Initialize Results Log
 
 Create `results.tsv` with header and baseline entry:
 
 ```
-commit	bug_count	delta	status	description	hypothesis	bug_category
-<hash>	<value>	0	baseline	initial bug count	establish baseline	baseline
+commit	type	tests_total	tests_failing	delta	status	description	hypothesis	category
+<hash>	baseline	<total>	<failing>	0	baseline	initial state	establish baseline	baseline
 ```
 
 Add `results.tsv` to `.gitignore` if not already there.
@@ -104,16 +131,18 @@ Read the editable files thoroughly. Write `bug-fix-context.md`:
 # Bug-Fix Context
 
 ## Project Understanding
-<Brief description of the codebase, what it does, and what the tests/linters check>
+<Brief description of the codebase, what it does, and what the tests cover>
 
-## Architecture Notes
-<Key files, modules, data flow relevant to the bugs>
+## Test Coverage Gaps
+<Areas of the code with poor or no test coverage>
+1. ...
+2. ...
+3. ...
 
 ## Known Bugs
 <List of bugs identified from the baseline run — failing tests, lint errors, etc.>
 1. ...
 2. ...
-3. ...
 
 ## What Works
 (None yet — baseline established)
@@ -121,15 +150,20 @@ Read the editable files thoroughly. Write `bug-fix-context.md`:
 ## What Doesn't Work
 (None yet)
 
-## Ideas Backlog
-<Initial fix ideas based on reading the code and errors, ordered by expected impact>
+## Ideas Backlog — Tests to Write
+<Areas to add unit tests, ordered by expected impact>
 1. ...
 2. ...
 3. ...
 
-## Bug Categories Tried
-| Category | Attempts | Fixed | Last Tried |
-|----------|----------|-------|------------|
+## Ideas Backlog — Bugs to Fix
+<Fix ideas based on reading the code and errors>
+1. ...
+2. ...
+
+## Categories Tried
+| Category | Type | Attempts | Kept | Last Tried |
+|----------|------|----------|------|------------|
 ```
 
 Commit `bug-fix.toml` and `bug-fix-context.md` to git.
@@ -137,12 +171,12 @@ Commit `bug-fix.toml` and `bug-fix-context.md` to git.
 ## Confirm and Go
 
 Show the user a summary:
-- Detection commands
-- Metric: name, baseline value
-- Editable scope
+- Test command and framework
+- Metric: name, baseline value (total tests, failing tests)
+- Editable scope (source + tests)
 - Branch name
-- Number of known bugs / initial ideas
+- Number of coverage gaps / known bugs / initial ideas
 
-Ask: "Ready to start the bug-hunting loop?"
+Ask: "Ready to start? The agent will continuously write tests and fix bugs."
 
 On confirmation, proceed to `loop.md`.

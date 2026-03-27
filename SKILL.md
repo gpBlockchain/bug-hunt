@@ -1,18 +1,19 @@
 ---
 name: bug-fix
-description: Use when continuously hunting and fixing bugs in a codebase — finds bugs via tests/linters/static-analysis, proposes fixes, verifies them, runs indefinitely without supervision
+description: Use when continuously writing unit tests and fixing bugs in a codebase — writes tests to find bugs, fixes them, verifies, runs indefinitely without supervision
 ---
 
-# bug-fix: Autonomous Bug-Hunting and Fixing
+# bug-fix: Autonomous Unit-Test Writing and Bug Fixing
 
 ## Overview
 
-Continuously find and fix bugs by proposing code fixes, running tests and linters, and keeping fixes that pass while discarding those that fail or introduce regressions.
+Continuously write unit tests to discover bugs and fix them. The agent adds tests to increase coverage, finds bugs when tests fail, proposes fixes, and keeps fixes that pass — all running autonomously.
 
 ## When to Use
 
-- User wants to find and fix bugs autonomously
-- There is a test suite, linter, or other bug detection tool
+- User wants to continuously add unit tests and fix bugs autonomously
+- There is a test framework and test suite (or one can be bootstrapped)
+- The codebase has low test coverage or known gaps
 - The process should run autonomously without supervision
 
 ## Routing
@@ -36,28 +37,30 @@ digraph routing {
 
 ### First run (no config)
 
-Follow `setup.md` to interactively configure the bug detection commands, editable scope, and baseline.
+Follow `setup.md` to interactively configure the test commands, test framework, editable scope, and baseline.
 
 ### Subsequent runs (config exists)
 
-Follow `loop.md` to run the bug-hunting loop. The agent reads the config, context note, and recent history, then enters the autonomous fix loop.
+Follow `loop.md` to run the test-writing and bug-fixing loop. The agent reads the config, context note, and recent history, then enters the autonomous loop.
 
 ### Analysis
 
-Follow `analysis.md` when the user asks for a summary of results, fixed bugs, or recommendations.
+Follow `analysis.md` when the user asks for a summary of results, tests written, bugs fixed, or recommendations.
 
 ## Key Files
 
 | File | Tracked in git? | Purpose |
 |------|-----------------|---------|
-| `bug-fix.toml` | Yes | Configuration: detection commands, metric, scope, timeouts |
-| `bug-fix-context.md` | Yes | Agent's living knowledge base: what works, what doesn't, known bugs |
-| `results.tsv` | No (gitignored) | Structured fix log with bug counts and descriptions |
+| `bug-fix.toml` | Yes | Configuration: test commands, framework, scope, timeouts |
+| `bug-fix-context.md` | Yes | Agent's living knowledge base: coverage gaps, known bugs, what works |
+| `results.tsv` | No (gitignored) | Structured log of tests written, bugs found, and fixes attempted |
 
 ## Quick Reference
 
-- **fixed**: fix applied and all detection commands pass
-- **not-fixed**: fix didn't resolve the bug or detection commands still fail
+- **test-added**: new unit test(s) written and all existing tests still pass
+- **bug-found**: new test(s) written that expose a bug (test fails, confirming the bug exists)
+- **fixed**: bug fix applied and all tests pass (including the new test that found the bug)
+- **not-fixed**: fix didn't resolve the bug or tests still fail
 - **regression**: fix caused previously passing tests to fail
-- **crash**: detection command failed to run — fix if trivial, skip if fundamental
-- **Branch**: `bug-fix/<tag>` — each fix attempt is a commit, discards are `git reset --hard`
+- **crash**: test command failed to run — fix if trivial, skip if fundamental
+- **Branch**: `bug-fix/<tag>` — each attempt is a commit, discards are `git reset --hard`
