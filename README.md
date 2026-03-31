@@ -1,17 +1,16 @@
-# bug-fix
+# bug-hunt
 
-An autonomous bug-hunting, unit-test-writing, and bug-fixing skill for OpenCode.
+An autonomous bug-hunting and unit-test-writing skill for OpenCode.
 
-> 一个自动持续补单测、找 bug、修 bug 的 OpenCode skill。核心循环：写单测 → 发现 bug → 修复 → 验证 → 保留或丢弃，永不停歇。
+> 一个自动持续补单测、找 bug 的 OpenCode skill。核心循环：写单测 → 发现 bug → 记录 → 继续写下一个测试，永不停歇。**只找 bug，不修复。**
 
 ## Overview
 
-This skill enables two tightly coupled activities running in a continuous loop:
+This skill focuses on one activity: finding bugs by writing tests.
 
 1. **Write unit tests** — Add new tests to increase coverage, expose untested edge cases, and discover hidden bugs
-2. **Find & fix bugs** — When tests fail (new or existing), propose fixes, verify them, keep fixes that pass, discard those that fail or regress
 
-The agent alternates between writing tests and fixing bugs autonomously, growing the test suite while reducing the bug count.
+The agent writes tests autonomously, recording every bug it finds — without attempting to fix anything. Multiple agents can run in parallel, each covering a different module.
 
 ## Inspiration
 
@@ -19,9 +18,9 @@ This project is inspired by [karpathy/autoresearch](https://github.com/karpathy/
 
 ## How It Works
 
-1. **Setup**: Configure test commands, test framework, editable scope, and safety timeouts
-2. **Loop**: The agent writes unit tests to find bugs, then fixes the bugs it finds — keeps going indefinitely
-3. **Analysis**: View structured results, tests written, bugs fixed, and coverage progress over time
+1. **Setup**: Configure test commands, test framework, editable test scope, and safety timeouts
+2. **Loop**: The agent writes unit tests to find bugs — records every bug found and keeps going indefinitely
+3. **Analysis**: View structured results, tests written, bugs found, and coverage progress over time
 
 ## Key Files
 
@@ -29,11 +28,11 @@ This project is inspired by [karpathy/autoresearch](https://github.com/karpathy/
 |------|---------|
 | `SKILL.md` | Skill definition and workflow routing |
 | `setup.md` | Interactive first-run configuration |
-| `loop.md` | Autonomous test-writing and bug-fixing loop |
+| `loop.md` | Autonomous test-writing loop |
 | `analysis.md` | Result analysis and recommendations |
-| `bug-fix.toml` | Configuration (test commands, framework, scope) |
-| `bug-fix-context.md` | Agent's knowledge base |
+| `bug-hunt.toml` | Configuration (test commands, framework, scope) |
+| `bug-hunt-context.md` | Agent's knowledge base |
 
 ## Usage
 
-Invoke the `bug-fix` skill when you want to autonomously write unit tests, find bugs, and fix them — using tests, linters, static analysis, or code review.
+Invoke the `bug-hunt` skill when you want to autonomously write unit tests and find bugs — using tests, linters, static analysis, or code review. The skill only finds bugs; it never modifies source code.
