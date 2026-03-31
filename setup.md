@@ -74,17 +74,39 @@ Also ask: "Any files/directories that are strictly off-limits?" (build configs, 
 
 Ask: "How long should I wait before killing a runaway test command? (default: 5 minutes)"
 
-### Step 7: Run Tag
+### Step 7: Code Risk Analysis
+
+Ask: "Run code risk analysis now? (Recommended — generates risk map for smarter test selection)"
+
+If yes:
+1. Read all source files in the `readonly` scope
+2. Follow `analysis-engine.md` to score each function on 5 dimensions
+3. Generate `risk-map.json`
+4. Show summary: total functions, high/medium/low risk counts
+
+If no: skip. Risk map will be generated on first loop iteration.
+
+### Step 8: Coverage Configuration (Optional)
+
+Ask: "Do you have a coverage tool? (e.g., `pytest --cov`, `nyc report`, `go test -cover`)"
+
+If yes:
+- Record the coverage command in `bug-hunt.toml` under `[coverage]`
+- Coverage data will be used for novelty bonus calculation in test selection
+
+If no: skip. Skill uses analysis-only mode.
+
+### Step 9: Run Tag
 
 Propose a tag based on today's date (e.g., `mar27`). The branch `bug-hunt/<tag>` must not already exist.
 
-### Step 8: Iteration Limit
+### Step 10: Iteration Limit
 
 Ask: "What is the maximum number of iterations before the agent should stop? (default: 100)"
 
 This prevents unbounded runs. The agent will stop after this many write-test iterations.
 
-### Step 9: Multi-Agent Configuration (Optional)
+### Step 11: Multi-Agent Configuration (Optional)
 
 Ask: "Do you want to run multiple agents in parallel, each covering a different module?"
 
@@ -125,6 +147,15 @@ branch_prefix = "bug-hunt"
 tag = "<tag>"
 max_iterations = 100
 context_history_limit = 20
+
+[coverage]
+command = "<optional coverage command>"
+enabled = false
+
+[strategy]
+learning_rate = 0.3
+weight_min = 0.2
+weight_max = 3.0
 
 # Optional: multi-agent configuration
 [coordinator]
@@ -205,6 +236,31 @@ Read the editable files thoroughly. Write `bug-hunt-context.md`:
 
 Commit `bug-hunt.toml` and `bug-hunt-context.md` to git.
 
+## Initialize Strategy State
+
+Create `strategy-state.json` with default weights:
+
+```json
+{
+  "test_types": {
+    "null-input":       { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "boundary":         { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "error-path":       { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "edge-case":        { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "concurrency":      { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "regression":       { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "malformed-input":  { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "state-corruption": { "written": 0, "bugs_found": 0, "weight": 1.0 }
+  },
+  "bug_patterns": [],
+  "last_updated": "setup",
+  "total_tests_written": 0,
+  "total_bugs_found": 0
+}
+```
+
+Commit `strategy-state.json` to git.
+
 ## Confirm and Go
 
 Show the user a summary:
@@ -212,6 +268,8 @@ Show the user a summary:
 - Metric: name, baseline value (total tests, failing tests)
 - Editable test scope (test directories only)
 - Branch name
+- Risk analysis: total functions scored, high/medium/low risk counts (if run)
+- Coverage: enabled/disabled
 - Number of coverage gaps / known bugs / initial ideas
 - Multi-agent plan (if configured)
 

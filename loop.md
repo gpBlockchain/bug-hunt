@@ -14,11 +14,15 @@ Read these files (and ONLY these — do not re-read the entire codebase):
 
 1. **`bug-hunt.toml`** — config (test commands, framework, editable test scope, timeouts)
 2. **`bug-hunt-context.md`** — your knowledge base (coverage gaps, known bugs)
-3. **Last 10 entries of `results.tsv`** — recent history
-4. **All `test-added` and `bug-found` entries from `results.tsv`** — what's been accomplished
-5. **The specific test files you plan to edit** — current state of the tests
+3. **`risk-map.json`** — code risk scores per function (if exists; generate if missing)
+4. **`strategy-state.json`** — test type weights and bug patterns
+5. **Last 10 entries of `results.tsv`** — recent history
+6. **All `test-added` and `bug-found` entries from `results.tsv`** — what's been accomplished
+7. **The specific test files you plan to edit** — current state of the tests
 
 Token budget per iteration should be minimal. Do NOT read files you don't plan to modify.
+
+**If `risk-map.json` is missing:** Generate it now by following `analysis-engine.md`. Read all source files in `readonly` scope, score each function, write the map. This only happens once.
 
 ## Multi-Agent Parallel Execution
 
@@ -37,10 +41,25 @@ When multiple agents are configured (see `[coordinator]` and `[[agents]]` in `bu
 
 ### Think before writing
 
-1. Review "Test Coverage Gaps" in the context note — pick the most impactful untested area
-2. Review recent results — avoid writing tests for areas already well-covered
-3. State your **hypothesis**: "I'm adding tests for [function/module] because [it has no test coverage / edge case X is untested / the error path is uncovered]"
-4. State the **test category**: e.g., `unit-test`, `edge-case`, `error-path`, `boundary`, `integration`, `null-input`, `concurrency`, `regression-test`
+Use analysis-driven selection to pick the highest-value test target:
+
+1. **Read risk-map.json** — get function risk scores (0-10)
+2. **Read strategy-state.json** — get test type weights (0.2-3.0)
+3. **Read last 10 results.tsv entries** — avoid repeating recently tested functions
+4. **Calculate composite score** for each candidate (function, test_type):
+
+```
+score = (risk_score / 10) × 0.4 + (weight / 3.0) × 0.35 + novelty_bonus × 0.25
+```
+
+   - **risk_score**: from risk-map.json, normalized to 0-1
+   - **weight**: from strategy-state.json, normalized to 0-1
+   - **novelty_bonus**: 1.0 if function never tested, ×0.7 per previous test on same function, min 0.1
+
+5. **Select highest-scoring** (function, test_type) pair
+6. **Check bug patterns** in strategy-state.json — if the target function matches a recorded pattern, boost that test type
+7. **State your hypothesis**: "I'm adding [test_type] tests for [function] because [risk reason + pattern match]"
+8. **State the test category**: must match one of the types in strategy-state.json
 
 ### Write the test
 
@@ -132,6 +151,23 @@ After each iteration (regardless of outcome), update `bug-hunt-context.md`:
 2. Refresh the Ideas Backlog — remove tried ideas, add new ones if inspired
 3. Update the Categories Tried table
 4. Commit the context update: `git add bug-hunt-context.md && git commit -m "context: update after iteration <N>"`
+
+## Update Strategy State
+
+After each iteration, update `strategy-state.json` (see `adaptive-strategy.md` for details):
+
+1. Read `strategy-state.json`
+2. Identify the test type used in this iteration
+3. Update counters:
+   - `bug-found` → increment `bugs_found` for that type
+   - `test-added` → increment `written` for that type
+4. Recalculate weight: `new = old × (1 + 0.3 × (rate - avg_rate))`, clamp to [0.2, 3.0]
+5. If `bug-found`: extract bug pattern, add to `bug_patterns` or increment count
+6. Update `total_tests_written` and `total_bugs_found`
+7. Set `last_updated` to current iteration number
+8. Commit: `git add strategy-state.json && git commit -m "strategy: update after iteration <N>"`
+
+**Stagnation check:** If last 20 iterations were all `test-added` (no bugs found), reset all weights to 1.0 and note in `bug-hunt-context.md`.
 
 ## NEVER STOP
 
