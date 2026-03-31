@@ -29,7 +29,7 @@ avg_rate = total_bugs_found / total_tests_written
 new_weight = old_weight × (1 + α × (rate - avg_rate))
 ```
 
-- `α = 0.3` (learning rate, configurable in `bug-fix.toml`)
+- `α = 0.3` (learning rate, configurable in `bug-hunt.toml`)
 - Clamp: `min(3.0, max(0.2, new_weight))`
 
 **Effect:** High-bug-finding types gain weight, low-finding types lose weight.
@@ -91,7 +91,7 @@ When a bug is found, record the pattern:
 
 ## Configuration
 
-In `bug-fix.toml`:
+In `bug-hunt.toml`:
 
 ```toml
 [strategy]
@@ -118,5 +118,5 @@ After each loop iteration:
 
 If no bugs found in last 20 test-added iterations:
 - Reset all weights to 1.0 (escape local minimum)
-- Log warning to `bug-fix-context.md`
+- Log warning to `bug-hunt-context.md`
 - Consider switching to untested test types (weight boost for types with `written: 0`)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Guide the user through configuring the test-writing and bug-fixing run. This only runs once — subsequent runs use the saved config.
+Guide the user through configuring the test-writing and bug-finding run. This only runs once — subsequent runs use the saved config.
 
 ## Setup Flow
 
@@ -61,11 +61,12 @@ Direction is always **lower is better** — fewer failing tests means progress.
 
 ### Step 5: Editable Scope
 
-Ask: "What files/directories can I modify?"
+Ask: "What test directories can I write new tests into?"
 
-**Important**: For this skill, both source files AND test files should generally be editable. Suggest:
-- Source code directories (for bug fixes)
-- Test directories (for writing new tests)
+**Important**: For this skill, only test files are modified — source code is always read-only.
+
+- Test directories (`editable_tests`) — where the agent may add or update test files
+- All source directories are automatically read-only
 
 Also ask: "Any files/directories that are strictly off-limits?" (build configs, generated files, vendor dependencies).
 
@@ -78,7 +79,7 @@ Ask: "How long should I wait before killing a runaway test command? (default: 5 
 Ask: "Run code risk analysis now? (Recommended — generates risk map for smarter test selection)"
 
 If yes:
-1. Read all files in `editable_src`
+1. Read all source files in the `readonly` scope
 2. Follow `analysis-engine.md` to score each function on 5 dimensions
 3. Generate `risk-map.json`
 4. Show summary: total functions, high/medium/low risk counts
@@ -90,18 +91,39 @@ If no: skip. Risk map will be generated on first loop iteration.
 Ask: "Do you have a coverage tool? (e.g., `pytest --cov`, `nyc report`, `go test -cover`)"
 
 If yes:
-- Record the coverage command in `bug-fix.toml` under `[coverage]`
+- Record the coverage command in `bug-hunt.toml` under `[coverage]`
 - Coverage data will be used for novelty bonus calculation in test selection
 
 If no: skip. Skill uses analysis-only mode.
 
 ### Step 9: Run Tag
 
-Propose a tag based on today's date (e.g., `mar27`). The branch `bug-fix/<tag>` must not already exist.
+Propose a tag based on today's date (e.g., `mar27`). The branch `bug-hunt/<tag>` must not already exist.
+
+### Step 10: Iteration Limit
+
+Ask: "What is the maximum number of iterations before the agent should stop? (default: 100)"
+
+This prevents unbounded runs. The agent will stop after this many write-test iterations.
+
+### Step 11: Multi-Agent Configuration (Optional)
+
+Ask: "Do you want to run multiple agents in parallel, each covering a different module?"
+
+If yes, ask for each agent:
+- Agent name (e.g., `agent-core`, `agent-api`, `agent-util`)
+- Readonly source scope for that agent (which module/directory it focuses on)
+- Test directory for that agent
+- Branch name (e.g., `bug-hunt/<tag>-core`)
+
+Also ask:
+- Maximum number of agents: `max_agents`
+- Final merge branch: `final_branch` (e.g., `bug-hunt/merge-<tag>`)
+- Report output file (e.g., `bug-hunt-report.md`)
 
 ## Generate Config
 
-Write `bug-fix.toml`:
+Write `bug-hunt.toml`:
 
 ```toml
 [testing]
@@ -117,14 +139,14 @@ test_dir = "<where test files go>"
 test_pattern = "<file naming pattern, e.g. test_*.py>"
 
 [scope]
-editable_src = ["<source directories>"]
 editable_tests = ["<test directories>"]
 readonly = ["<off-limits paths>"]
-branch_prefix = "bug-fix"
+branch_prefix = "bug-hunt"
 
 [run]
 tag = "<tag>"
-max_consecutive_not_fixed = 3
+max_iterations = 100
+context_history_limit = 20
 
 [coverage]
 command = "<optional coverage command>"
@@ -134,11 +156,34 @@ enabled = false
 learning_rate = 0.3
 weight_min = 0.2
 weight_max = 3.0
+
+# Optional: multi-agent configuration
+[coordinator]
+strategy = "by-module"
+max_agents = 3
+
+[[agents]]
+name = "agent-core"
+scope = ["src/core/"]
+test_dir = "tests/core/"
+branch = "bug-hunt/<tag>-core"
+results = "results-core.tsv"
+
+[[agents]]
+name = "agent-api"
+scope = ["src/api/"]
+test_dir = "tests/api/"
+branch = "bug-hunt/<tag>-api"
+results = "results-api.tsv"
+
+[merge]
+final_branch = "bug-hunt/merge-<tag>"
+report = "bug-hunt-report.md"
 ```
 
 ## Establish Baseline
 
-1. Create git branch: `git checkout -b bug-fix/<tag>`
+1. Create git branch: `git checkout -b bug-hunt/<tag>`
 2. Run all test/detection commands once
 3. Record: total tests, passing tests, failing tests, lint errors
 4. Report to user: "Baseline: X tests (Y passing, Z failing). Starting hunt."
@@ -156,10 +201,10 @@ Add `results.tsv` to `.gitignore` if not already there.
 
 ## Build Initial Context
 
-Read the editable files thoroughly. Write `bug-fix-context.md`:
+Read the editable files thoroughly. Write `bug-hunt-context.md`:
 
 ```markdown
-# Bug-Fix Context
+# Bug-Hunt Context
 
 ## Project Understanding
 <Brief description of the codebase, what it does, and what the tests cover>
@@ -178,26 +223,18 @@ Read the editable files thoroughly. Write `bug-fix-context.md`:
 ## What Works
 (None yet — baseline established)
 
-## What Doesn't Work
-(None yet)
-
 ## Ideas Backlog — Tests to Write
 <Areas to add unit tests, ordered by expected impact>
 1. ...
 2. ...
 3. ...
 
-## Ideas Backlog — Bugs to Fix
-<Fix ideas based on reading the code and errors>
-1. ...
-2. ...
-
 ## Categories Tried
 | Category | Type | Attempts | Kept | Last Tried |
 |----------|------|----------|------|------------|
 ```
 
-Commit `bug-fix.toml` and `bug-fix-context.md` to git.
+Commit `bug-hunt.toml` and `bug-hunt-context.md` to git.
 
 ## Initialize Strategy State
 
@@ -229,12 +266,13 @@ Commit `strategy-state.json` to git.
 Show the user a summary:
 - Test command and framework
 - Metric: name, baseline value (total tests, failing tests)
-- Editable scope (source + tests)
+- Editable test scope (test directories only)
 - Branch name
 - Risk analysis: total functions scored, high/medium/low risk counts (if run)
 - Coverage: enabled/disabled
 - Number of coverage gaps / known bugs / initial ideas
+- Multi-agent plan (if configured)
 
-Ask: "Ready to start? The agent will continuously write tests and fix bugs."
+Ask: "Ready to start? The agent will continuously write tests to find bugs."
 
 On confirmation, proceed to `loop.md`.

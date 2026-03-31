@@ -16,7 +16,7 @@ Analyze source code to identify bug-prone areas. Run once during Setup to genera
 
 ## Execution
 
-1. Read all files in `editable_src` from `bug-fix.toml`
+1. Read all files in the `readonly` scope from `bug-hunt.toml`
 2. For each file, identify functions/methods
 3. Score each function on each dimension (0-10)
 4. Compute weighted composite: `risk = Σ(dimension_score × dimension_weight)`
