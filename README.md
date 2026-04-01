@@ -1,8 +1,8 @@
 # bug-hunt
 
-An autonomous bug-hunting and unit-test-writing skill for OpenCode.
+An autonomous bug-hunting and unit-test-writing skill for AI coding agents. Supports [OpenCode](https://github.com/opencode-ai/opencode) and [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
-> 一个自动持续补单测、找 bug 的 OpenCode skill。核心循环：写单测 → 发现 bug → 记录 → 继续写下一个测试，永不停歇。**只找 bug，不修复。**
+> 一个自动持续补单测、找 bug 的 AI 编程智能体 skill，支持 OpenCode 与 Claude Code。核心循环：写单测 → 发现 bug → 记录 → 继续写下一个测试，永不停歇。**只找 bug，不修复。**
 
 ## Overview
 
@@ -26,7 +26,9 @@ This project is inspired by [karpathy/autoresearch](https://github.com/karpathy/
 
 | File | Purpose |
 |------|---------|
-| `SKILL.md` | Skill definition and workflow routing |
+| `SKILL.md` | Skill definition and workflow routing (OpenCode) |
+| `CLAUDE.md` | Skill definition and workflow routing (Claude Code) |
+| `.claude/commands/bug-hunt.md` | `/bug-hunt` slash command (Claude Code) |
 | `setup.md` | Interactive first-run configuration |
 | `loop.md` | Autonomous test-writing loop |
 | `analysis.md` | Result analysis and recommendations |
@@ -35,4 +37,20 @@ This project is inspired by [karpathy/autoresearch](https://github.com/karpathy/
 
 ## Usage
 
+### OpenCode
+
 Invoke the `bug-hunt` skill when you want to autonomously write unit tests and find bugs — using tests, linters, static analysis, or code review. The skill only finds bugs; it never modifies source code.
+
+### Claude Code
+
+Run the `/bug-hunt` slash command from the Claude Code prompt:
+
+```
+/bug-hunt
+```
+
+Or for analysis of a previous run:
+
+```
+/bug-hunt analysis
+```
