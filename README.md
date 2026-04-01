@@ -35,6 +35,65 @@ This project is inspired by [karpathy/autoresearch](https://github.com/karpathy/
 | `bug-hunt.toml` | Configuration (test commands, framework, scope) |
 | `bug-hunt-context.md` | Agent's knowledge base |
 
+## Installation
+
+### Quick Install (Recommended)
+
+Run this one-liner in your project root to install for both Claude Code and OpenCode:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gpBlockchain/bug-hunt/main/install.sh | bash
+```
+
+Install for a specific agent only:
+
+```bash
+# Claude Code only
+curl -fsSL https://raw.githubusercontent.com/gpBlockchain/bug-hunt/main/install.sh | bash -s -- --claude
+
+# OpenCode only
+curl -fsSL https://raw.githubusercontent.com/gpBlockchain/bug-hunt/main/install.sh | bash -s -- --opencode
+```
+
+### Manual Install
+
+If you prefer to install manually, download the following files into your project root:
+
+**Workflow files** (required):
+
+```bash
+# Download all workflow files
+for f in setup.md loop.md analysis.md analysis-engine.md adaptive-strategy.md; do
+  curl -fsSL "https://raw.githubusercontent.com/gpBlockchain/bug-hunt/main/$f" -o "$f"
+done
+```
+
+**Claude Code** — add the CLAUDE.md instructions and slash command:
+
+```bash
+# Append bug-hunt instructions to CLAUDE.md (skip if already present)
+grep -q "bug-hunt: Autonomous Unit-Test Writing" CLAUDE.md 2>/dev/null || \
+  curl -fsSL https://raw.githubusercontent.com/gpBlockchain/bug-hunt/main/CLAUDE.md >> CLAUDE.md
+mkdir -p .claude/commands
+curl -fsSL https://raw.githubusercontent.com/gpBlockchain/bug-hunt/main/.claude/commands/bug-hunt.md -o .claude/commands/bug-hunt.md
+```
+
+**OpenCode** — add the skill definition:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gpBlockchain/bug-hunt/main/SKILL.md -o SKILL.md
+```
+
+### Uninstall
+
+Remove the installed files:
+
+```bash
+rm -f setup.md loop.md analysis.md analysis-engine.md adaptive-strategy.md SKILL.md
+rm -f .claude/commands/bug-hunt.md
+# Manually remove bug-hunt section from CLAUDE.md if needed
+```
+
 ## Usage
 
 ### OpenCode
