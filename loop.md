@@ -1,5 +1,9 @@
 # The Test-Writing Loop
 
+## ⚠️ CRITICAL: THIS IS AN INFINITE LOOP — NEVER STOP
+
+You MUST keep iterating. After finishing one iteration, **immediately start the next**. Do NOT stop, pause, summarize, or ask the user anything between iterations. The loop runs until the human manually interrupts you or `max_iterations` (from `bug-hunt.toml`) is reached. If you have completed fewer iterations than `max_iterations`, you MUST continue.
+
 ## Overview
 
 This is the core autonomous loop with a single mode:
@@ -8,7 +12,25 @@ This is the core autonomous loop with a single mode:
 
 Each iteration: read context → write test → verify → record outcome. Runs indefinitely until manually stopped or `max_iterations` is reached.
 
+## Loop Structure
+
+```
+iteration = 0
+while iteration < max_iterations:
+    iteration += 1
+    1. Before Each Iteration  — read context files
+    2. Write-Test Mode        — pick target, write test, commit, run, evaluate
+    3. Log to results.tsv     — record outcome
+    4. Update Context Note    — update bug-hunt-context.md
+    5. Update Strategy State  — update strategy-state.json
+    → immediately go back to step 1 for the next iteration
+```
+
+**After step 5, you MUST loop back to step 1.** Do NOT stop to reflect, summarize, or ask questions.
+
 ## Before Each Iteration
+
+**Track your iteration number** — increment it at the start of each iteration. Check against `max_iterations` from `bug-hunt.toml`. Only stop if `iteration >= max_iterations`.
 
 Read these files (and ONLY these — do not re-read the entire codebase):
 
@@ -17,7 +39,7 @@ Read these files (and ONLY these — do not re-read the entire codebase):
 3. **`risk-map.json`** — code risk scores per function (if exists; generate if missing)
 4. **`strategy-state.json`** — test type weights and bug patterns
 5. **Last 10 entries of `results.tsv`** — recent history
-6. **All `test-added` and `bug-found` entries from `results.tsv`** — what's been accomplished
+6. **Last 30 entries (combined total) with status `test-added` or `bug-found` from `results.tsv`** — what's been accomplished (do NOT read ALL entries — only the most recent 30 to keep context small)
 7. **The specific test files you plan to edit** — current state of the tests
 
 Token budget per iteration should be minimal. Do NOT read files you don't plan to modify.
@@ -169,9 +191,27 @@ After each iteration, update `strategy-state.json` (see `adaptive-strategy.md` f
 
 **Stagnation check:** If last 20 iterations were all `test-added` (no bugs found), reset all weights to 1.0 and note in `bug-hunt-context.md`.
 
+---
+
+## → NEXT ITERATION
+
+**You have finished one iteration. Immediately go back to "Before Each Iteration" and start the next one.**
+
+Do NOT stop here. Do NOT summarize progress. Do NOT ask the user anything. Just increment your iteration counter and begin the next iteration. The only reasons to stop are:
+1. `iteration >= max_iterations` from `bug-hunt.toml`
+2. The human manually interrupts you
+
 ## NEVER STOP
 
-Once the loop has begun, do NOT pause to ask the human if you should continue. Do NOT ask "should I keep going?" or "is this a good stopping point?". The human might be asleep or away and expects you to continue working **indefinitely** until manually stopped or `max_iterations` is reached.
+Once the loop has begun, do NOT pause to ask the human if you should continue. Do NOT ask "should I keep going?" or "is this a good stopping point?". Do NOT produce a summary and wait. Do NOT say "let me know if you want me to continue." The human might be asleep or away and expects you to continue working **indefinitely** until manually stopped or `max_iterations` is reached.
+
+**Common mistakes that cause premature stopping — AVOID these:**
+- ❌ Stopping after a few iterations to "summarize progress so far"
+- ❌ Asking "should I continue?" or "want me to keep going?"
+- ❌ Deciding you've "done enough" or "covered the main areas"
+- ❌ Stopping because a bug was found — record it and keep going
+- ❌ Stopping because no bugs were found — keep writing more tests
+- ❌ Stopping because the context feels large — trim it and keep going
 
 You are autonomous. Writing tests keeps you busy forever:
 
