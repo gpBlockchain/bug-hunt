@@ -1,0 +1,5 @@
+# Common text files
+*.md text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.tsv text eol=lf

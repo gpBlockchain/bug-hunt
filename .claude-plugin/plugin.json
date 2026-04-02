@@ -1,0 +1,19 @@
+{
+  "name": "bug-hunt",
+  "description": "Autonomous bug-hunting skill: continuously writes unit tests to discover bugs, records findings, runs indefinitely without supervision",
+  "version": "1.0.0",
+  "author": {
+    "name": "gpBlockchain"
+  },
+  "homepage": "https://github.com/gpBlockchain/bug-hunt",
+  "repository": "https://github.com/gpBlockchain/bug-hunt",
+  "license": "MIT",
+  "keywords": [
+    "bug-hunting",
+    "unit-testing",
+    "autonomous",
+    "test-writing",
+    "code-quality",
+    "skills"
+  ]
+}
