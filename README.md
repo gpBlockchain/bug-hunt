@@ -88,13 +88,6 @@ To update:
 gemini extensions update bug-hunt
 ```
 
-### GitHub Copilot CLI
-
-```bash
-copilot plugin marketplace add gpBlockchain/bug-hunt
-copilot plugin install bug-hunt@bug-hunt-dev
-```
-
 ### Verify Installation
 
 Start a new session in your chosen platform and ask: "Tell me about bug-hunt" or invoke it directly. The agent should recognize the skill and offer to start a bug-hunting run.
