@@ -1,0 +1,6 @@
+{
+  "name": "bug-hunt",
+  "description": "Autonomous bug-hunting skill: continuously writes unit tests to discover bugs",
+  "version": "1.0.0",
+  "contextFileName": "GEMINI.md"
+}
