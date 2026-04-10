@@ -18,9 +18,21 @@ This project is inspired by [karpathy/autoresearch](https://github.com/karpathy/
 
 ## Installation
 
-**Note:** Installation differs by platform. Choose the method for your coding agent below.
+### Quick Install (All Agents)
 
-### Claude Code (via Plugin Marketplace)
+Install to any supported agent (Claude Code, Cursor, Codex, OpenCode, Gemini CLI, GitHub Copilot, and [40+ more](https://github.com/vercel-labs/skills#supported-agents)) using the [skills CLI](https://skills.sh):
+
+```bash
+npx skills add gpBlockchain/bug-hunt
+```
+
+Browse on the skills directory: [skills.sh](https://skills.sh)
+
+### Platform-specific Installation
+
+Choose the method for your coding agent below.
+
+#### Claude Code (via Plugin Marketplace)
 
 In Claude Code, register the marketplace first:
 
@@ -34,7 +46,7 @@ Then install the plugin:
 /plugin install bug-hunt@bug-hunt-dev
 ```
 
-### Claude Code (Manual)
+#### Claude Code (Manual)
 
 Clone into your project and the skill is auto-discovered via `CLAUDE.md`:
 
@@ -44,7 +56,7 @@ git clone https://github.com/gpBlockchain/bug-hunt.git
 
 Then use the `/bug-hunt` slash command.
 
-### Cursor
+#### Cursor
 
 In Cursor Agent chat, install from marketplace:
 
@@ -54,7 +66,7 @@ In Cursor Agent chat, install from marketplace:
 
 Or search for "bug-hunt" in the plugin marketplace.
 
-### Codex
+#### Codex
 
 Tell Codex:
 
@@ -64,7 +76,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/gpBlockchai
 
 **Detailed docs:** [.codex/INSTALL.md](.codex/INSTALL.md)
 
-### OpenCode
+#### OpenCode
 
 Add to your `opencode.json`:
 
@@ -76,7 +88,7 @@ Add to your `opencode.json`:
 
 Restart OpenCode. **Detailed docs:** [.opencode/INSTALL.md](.opencode/INSTALL.md)
 
-### Gemini CLI
+#### Gemini CLI
 
 ```bash
 gemini extensions install https://github.com/gpBlockchain/bug-hunt
@@ -88,11 +100,11 @@ To update:
 gemini extensions update bug-hunt
 ```
 
-### Verify Installation
+#### Verify Installation
 
 Start a new session in your chosen platform and ask: "Tell me about bug-hunt" or invoke it directly. The agent should recognize the skill and offer to start a bug-hunting run.
 
-### Updating
+#### Updating
 
 **Claude Code:**
 ```bash

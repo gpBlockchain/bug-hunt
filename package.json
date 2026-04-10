@@ -3,6 +3,21 @@
   "version": "1.0.0",
   "description": "Autonomous bug-hunting skill: continuously writes unit tests to discover bugs, records findings, runs indefinitely without supervision",
   "license": "MIT",
+  "keywords": [
+    "agent-skill",
+    "skills",
+    "bug-hunting",
+    "unit-testing",
+    "autonomous",
+    "test-writing",
+    "code-quality",
+    "claude-code",
+    "codex",
+    "cursor",
+    "opencode",
+    "gemini-cli",
+    "github-copilot"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/gpBlockchain/bug-hunt.git"
