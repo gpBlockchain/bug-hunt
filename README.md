@@ -125,9 +125,10 @@ gemini extensions update bug-hunt
 
 ## How It Works
 
-1. **Setup**: Configure test commands, test framework, editable test scope, and safety timeouts
-2. **Loop**: The agent writes unit tests to find bugs — records every bug found and keeps going indefinitely
-3. **Analysis**: View structured results, tests written, bugs found, and coverage progress over time
+1. **Setup**: Configure test commands, test framework, editable test scope, and safety timeouts. Runs code risk analysis to generate `risk-map.json`, then automatically performs codebase reconnaissance (`recon.md`) to detect the tech stack, entry points, and trust boundaries.
+2. **Loop**: The agent writes unit tests to find bugs — records every bug found and keeps going indefinitely. After each potential bug, a verification step (`verification.md`) filters out flaky tests and false positives, assigning a confidence score to every confirmed finding. Security-oriented test types (`injection`, `auth-bypass`, `idor`, etc.) are prioritized for high-risk entry points identified during recon.
+3. **Analysis**: View structured results, tests written, bugs found (with confidence scores), and coverage progress over time.
+4. **Evaluation** *(optional)*: Run `/bug-hunt --eval` to measure the skill's effectiveness against a controlled test fixture with planted bugs — reports detection rate, false positive rate, and efficiency.
 
 ## Key Files
 
@@ -139,8 +140,16 @@ gemini extensions update bug-hunt
 | `setup.md` | Interactive first-run configuration |
 | `loop.md` | Autonomous test-writing loop |
 | `analysis.md` | Result analysis and recommendations |
+| `recon.md` | Codebase reconnaissance: tech stack, entry points, trust boundaries |
+| `verification.md` | Bug verification and false-positive filtering |
+| `eval.md` | Self-test evaluation and effectiveness benchmarking |
+| `adaptive-strategy.md` | Self-learning test selection and fuzz testing strategy |
+| `analysis-engine.md` | Code risk scoring (6 dimensions including Security) |
 | `bug-hunt.toml` | Configuration (test commands, framework, scope) |
 | `bug-hunt-context.md` | Agent's knowledge base |
+| `recon-report.json` | Tech stack, entry points, trust boundaries (generated at setup) |
+| `llms.txt` | Short LLM-facing project summary |
+| `llms-full.txt` | Full LLM-facing reference |
 
 ## Usage
 

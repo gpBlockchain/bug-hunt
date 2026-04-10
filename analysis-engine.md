@@ -8,11 +8,12 @@ Analyze source code to identify bug-prone areas. Run once during Setup to genera
 
 | Dimension | Weight | Risk Signal |
 |-----------|--------|-------------|
-| Complexity | 0.25 | Deep nesting (>5), many branches (>10), long functions (>50 lines) |
-| Input handling | 0.30 | Missing null/empty checks, unvalidated external input, no type constraints |
+| Complexity | 0.20 | Deep nesting (>5), many branches (>10), long functions (>50 lines) |
+| Input handling | 0.25 | Missing null/empty checks, unvalidated external input, no type constraints |
 | Error handling | 0.20 | No try/catch, swallowed errors, missing error returns |
-| Data flow | 0.15 | Shared mutable state, race conditions, unguarded concurrent access |
+| Data flow | 0.10 | Shared mutable state, race conditions, unguarded concurrent access |
 | Dependency | 0.10 | Deep call chains (>5), unhandled external API errors, circular deps |
+| Security | 0.15 | Raw SQL queries, unvalidated user input in routes, missing auth checks, hardcoded secrets |
 
 ## Execution
 
@@ -50,6 +51,11 @@ Analyze source code to identify bug-prone areas. Run once during Setup to genera
 - 4-6: Moderate depth, some unchecked external calls
 - 7-10: Deep chains, unchecked third-party calls, circular dependencies
 
+### Security
+- 0-3: No raw queries, all inputs validated, no hardcoded secrets, auth checks present
+- 4-6: Some inputs unvalidated, parameterized queries used inconsistently, auth checks partial
+- 7-10: Raw SQL/shell interpolation, user input used directly, missing auth checks, hardcoded credentials
+
 ## Test Type Mapping
 
 | High Dimension | Suggested Test Types |
@@ -59,6 +65,7 @@ Analyze source code to identify bug-prone areas. Run once during Setup to genera
 | Complexity | edge-case, branch-coverage |
 | Data flow | concurrency, state-corruption |
 | Dependency | integration, mock-failure |
+| Security | injection, auth-bypass, idor, input-overflow, secret-leak |
 
 ## Output: risk-map.json
 
@@ -76,10 +83,11 @@ Analyze source code to identify bug-prone areas. Run once during Setup to genera
         "input_handling": 9,
         "error_handling": 8,
         "data_flow": 6,
-        "dependency": 5
+        "dependency": 5,
+        "security": 8
       },
-      "reasons": ["No null check on input parameter", "Nested 6 levels deep", "No exception handling"],
-      "suggested_tests": ["null-input", "boundary", "error-path"]
+      "reasons": ["No null check on input parameter", "Nested 6 levels deep", "No exception handling", "Raw SQL query with unvalidated input"],
+      "suggested_tests": ["null-input", "boundary", "error-path", "injection"]
     }
   ],
   "summary": {
