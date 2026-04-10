@@ -38,9 +38,10 @@ Read these files (and ONLY these — do not re-read the entire codebase):
 2. **`bug-hunt-context.md`** — your knowledge base (coverage gaps, known bugs)
 3. **`risk-map.json`** — code risk scores per function (if exists; generate if missing)
 4. **`strategy-state.json`** — test type weights and bug patterns
-5. **Last 10 entries of `results.tsv`** — recent history
-6. **Last 30 entries (combined total) with status `test-added` or `bug-found` from `results.tsv`** — what's been accomplished (do NOT read ALL entries — only the most recent 30 to keep context small)
-7. **The specific test files you plan to edit** — current state of the tests
+5. **`recon-report.json`** — tech stack, entry points, trust boundaries (if exists; generate via `recon.md` if missing)
+6. **Last 10 entries of `results.tsv`** — recent history
+7. **Last 30 entries (combined total) with status `test-added` or `bug-found` from `results.tsv`** — what's been accomplished (do NOT read ALL entries — only the most recent 30 to keep context small)
+8. **The specific test files you plan to edit** — current state of the tests
 
 Token budget per iteration should be minimal. Do NOT read files you don't plan to modify.
 
@@ -77,6 +78,7 @@ score = (risk_score / 10) × 0.4 + (weight / 3.0) × 0.35 + novelty_bonus × 0.2
    - **risk_score**: from risk-map.json, normalized to 0-1
    - **weight**: from strategy-state.json, normalized to 0-1
    - **novelty_bonus**: 1.0 if function never tested, ×0.7 per previous test on same function, min 0.1
+   - **recon bonus**: add +0.2 to score when the target function lives in a high-risk entry point path (from recon-report.json) AND the selected test_type is a security type (`injection`, `auth-bypass`, `idor`, `input-overflow`, `secret-leak`)
 
 5. **Select highest-scoring** (function, test_type) pair
 6. **Check bug patterns** in strategy-state.json — if the target function matches a recorded pattern, boost that test type
@@ -123,12 +125,17 @@ The new test(s) pass — the code is correct for these cases. Good: coverage inc
 
 The new test fails — it exposed a real bug! This is a great outcome.
 
-1. The commit stays on the branch (the failing test is intentional — it proves the bug)
-2. Log to `results.tsv` with status `bug-found`
-3. Update `bug-hunt-context.md`:
-   - Add the bug to "Known Bugs" with the failing test as evidence
+1. **Run verification** — follow `verification.md` before logging:
+   - Re-run tests to check for flakiness
+   - Review test preconditions and external state dependencies
+   - Assign a confidence score (0–100) and classification (`confirmed`, `likely`, `flaky`, `by-design`)
+   - If classified as `flaky` or `by-design`: discard the commit (`git reset --hard HEAD~1`), log with that status, and skip steps 2–3 below
+2. The commit stays on the branch (the failing test is intentional — it proves the bug)
+3. Log to `results.tsv` with status `bug-found`, plus `confidence` and `verification` columns
+4. Update `bug-hunt-context.md`:
+   - Add the bug to "Known Bugs" with confidence score and classification
    - Note what the test covers
-4. **Next iteration**: continue writing more tests — do NOT attempt to fix the bug
+5. **Next iteration**: continue writing more tests — do NOT attempt to fix the bug
 
 #### CRASH (test command fails to run)
 
@@ -144,7 +151,7 @@ The new test fails — it exposed a real bug! This is a great outcome.
 Append a row (tab-separated):
 
 ```
-<commit_hash_7chars>	<type>	<tests_total>	<tests_failing>	<delta>	<status>	<description>	<hypothesis>	<category>
+<commit_hash_7chars>	<type>	<tests_total>	<tests_failing>	<delta>	<status>	<description>	<hypothesis>	<category>	<confidence>	<verification>
 ```
 
 - `commit`: short git hash (7 chars). For discarded attempts, use the hash before reset.
@@ -152,10 +159,12 @@ Append a row (tab-separated):
 - `tests_total`: total number of tests after this iteration
 - `tests_failing`: number of failing tests. Use `N/A` for crashes.
 - `delta`: increase in failing tests compared to the previous iteration (positive = new bugs found this iteration). Use `0` for crashes.
-- `status`: `test-added`, `bug-found`, or `crash`
+- `status`: `test-added`, `bug-found`, `crash`, `flaky`, or `by-design`
 - `description`: one-line summary of the test written
 - `hypothesis`: why you wrote this test
 - `category`: category tag
+- `confidence`: integer 0–100 for `bug-found` rows; `N/A` for all others
+- `verification`: `confirmed`, `likely`, `flaky`, or `by-design` for `bug-found` rows; `N/A` for all others
 
 **Do NOT commit results.tsv** — it stays untracked.
 

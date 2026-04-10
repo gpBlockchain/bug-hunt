@@ -1,0 +1,123 @@
+bug-hunt — Full LLM Reference
+
+This file contains a condensed summary of every key file in the skill for use by AI agents
+operating under context constraints.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SKILL.md / CLAUDE.md — Routing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- No bug-hunt.toml → setup.md
+- bug-hunt.toml exists + analysis request → analysis.md
+- bug-hunt.toml exists + --eval → eval.md
+- bug-hunt.toml exists → loop.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+setup.md — Interactive Configuration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Steps: test command → additional commands → framework → metric → scope →
+       timeout → risk analysis (analysis-engine.md → risk-map.json) →
+       recon (recon.md → recon-report.json) → coverage → tag → max_iterations →
+       multi-agent config → write bug-hunt.toml → baseline → results.tsv →
+       bug-hunt-context.md → strategy-state.json → confirm → loop.md
+
+strategy-state.json default weights (all 1.0):
+  null-input, boundary, error-path, edge-case, concurrency, regression,
+  malformed-input, state-corruption,
+  injection, auth-bypass, idor, input-overflow, secret-leak  [security types]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+recon.md — Codebase Reconnaissance
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Run once after risk-map.json is generated. Detects:
+  tech_stack: language, framework, orm, auth
+  entry_points: http/websocket/queue/cli/scheduled/graphql, path, risk (high/medium/low)
+  trust_boundaries: from/to/files (public→authenticated, authenticated→admin)
+Output: recon-report.json
+
+Loop uses recon-report.json to boost security test types (+0.2 to composite score)
+for functions in high-risk entry point paths or trust boundary files.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+loop.md — Autonomous Test-Writing Loop
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Each iteration:
+  1. Before Each Iteration: read bug-hunt.toml, bug-hunt-context.md, risk-map.json,
+     strategy-state.json, recon-report.json, last 10 results.tsv rows, target test files
+  2. Write-Test Mode: composite score = risk×0.4 + weight×0.35 + novelty×0.25
+     (+0.2 bonus for security types on high-risk entry points from recon)
+  3. Evaluate: test-added / bug-found / crash
+  4. If bug-found: run verification.md (re-run, check preconditions, flakiness, design)
+  5. Log to results.tsv (columns: commit, type, tests_total, tests_failing, delta,
+     status, description, hypothesis, category, confidence, verification)
+  6. Update bug-hunt-context.md
+  7. Update strategy-state.json
+  → loop back to step 1, NEVER STOP
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verification.md — Bug Verification
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Run after bug-found before logging. Checks:
+  1. Re-run test (flakiness guard)
+  2. Review test preconditions (authoring errors)
+  3. Check for external state dependencies (time, random, network)
+  4. Check framework design intent (documented behavior)
+  5. Assign confidence 0-100
+
+Classifications:
+  confirmed (≥70)  — real bug, log it
+  likely (50-69)   — probably a bug, log with note
+  flaky (<50)      — discard, reset, log as flaky
+  by-design        — discard, note in context
+
+results.tsv extra columns: confidence (0-100 or N/A), verification (confirmed/likely/flaky/by-design/N/A)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+analysis-engine.md — Code Risk Scoring
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dimensions and weights:
+  Complexity:      0.20  (nesting, branches, length)
+  Input handling:  0.25  (null checks, validation)
+  Error handling:  0.20  (try/catch, error returns)
+  Data flow:       0.10  (shared state, races)
+  Dependency:      0.10  (call depth, external errors)
+  Security:        0.15  (raw SQL, unvalidated input, missing auth, hardcoded secrets)
+
+Output: risk-map.json (per-function risk scores 0-10, suggested test types)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+adaptive-strategy.md — Self-Learning Test Selection
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Weight update: new = old × (1 + 0.3 × (rate - avg_rate)), clamped [0.2, 3.0]
+Composite score: risk×0.4 + weight×0.35 + novelty×0.25
+Stagnation reset: if 20 consecutive test-added, reset all weights to 1.0
+
+Security test types: injection, auth-bypass, idor, input-overflow, secret-leak
+Fuzz inputs for malformed-input/injection/input-overflow:
+  boundary values, special chars, type confusion, format strings, unicode edge cases
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+analysis.md — Result Analysis
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Reads results.tsv, risk-map.json, strategy-state.json, bug-hunt-context.md.
+Reports: total tests, bugs found (by confidence/type), efficiency, coverage, recommendations.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+eval.md — Effectiveness Evaluation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Invoke with: /bug-hunt --eval
+Plants 7 known bugs in test-fixtures/, runs loop for max 30 iterations.
+Metrics: detection_rate, false_positive_rate, efficiency, coverage, time_to_first_bug
+Output: eval-report.json
+Targets: detection ≥0.70, false_positive ≤0.10, efficiency ≥0.25, time_to_first_bug ≤5
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+KEY FILES SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+bug-hunt.toml          config
+bug-hunt-context.md    knowledge base (coverage gaps, known bugs with confidence)
+risk-map.json          function risk scores
+strategy-state.json    adaptive test-type weights
+recon-report.json      tech stack + entry points + trust boundaries
+results.tsv            per-iteration log (gitignored)
+eval-report.json       effectiveness metrics
+llms.txt               short LLM summary (this file's sibling)

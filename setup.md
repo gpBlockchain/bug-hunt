@@ -80,11 +80,22 @@ Ask: "Run code risk analysis now? (Recommended — generates risk map for smarte
 
 If yes:
 1. Read all source files in the `readonly` scope
-2. Follow `analysis-engine.md` to score each function on 5 dimensions
+2. Follow `analysis-engine.md` to score each function on 6 dimensions (including Security)
 3. Generate `risk-map.json`
 4. Show summary: total functions, high/medium/low risk counts
 
 If no: skip. Risk map will be generated on first loop iteration.
+
+### Step 7a: Recon (Codebase Reconnaissance)
+
+Immediately after risk analysis (whether run now or deferred), follow `recon.md` to:
+
+1. Detect the project's tech stack (language, framework, ORM, auth)
+2. Identify high-risk entry points (HTTP routes, WebSocket, queues, etc.)
+3. Map trust boundaries (public → authenticated, authenticated → admin)
+4. Write `recon-report.json`
+
+This runs automatically — no user prompt needed. Show a brief summary of findings.
 
 ### Step 8: Coverage Configuration (Optional)
 
@@ -193,8 +204,8 @@ report = "bug-hunt-report.md"
 Create `results.tsv` with header and baseline entry:
 
 ```
-commit	type	tests_total	tests_failing	delta	status	description	hypothesis	category
-<hash>	baseline	<total>	<failing>	0	baseline	initial state	establish baseline	baseline
+commit	type	tests_total	tests_failing	delta	status	description	hypothesis	category	confidence	verification
+<hash>	baseline	<total>	<failing>	0	baseline	initial state	establish baseline	baseline	N/A	N/A
 ```
 
 Add `results.tsv` to `.gitignore` if not already there.
@@ -250,7 +261,12 @@ Create `strategy-state.json` with default weights:
     "concurrency":      { "written": 0, "bugs_found": 0, "weight": 1.0 },
     "regression":       { "written": 0, "bugs_found": 0, "weight": 1.0 },
     "malformed-input":  { "written": 0, "bugs_found": 0, "weight": 1.0 },
-    "state-corruption": { "written": 0, "bugs_found": 0, "weight": 1.0 }
+    "state-corruption": { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "injection":        { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "auth-bypass":      { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "idor":             { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "input-overflow":   { "written": 0, "bugs_found": 0, "weight": 1.0 },
+    "secret-leak":      { "written": 0, "bugs_found": 0, "weight": 1.0 }
   },
   "bug_patterns": [],
   "last_updated": "setup",
@@ -269,6 +285,7 @@ Show the user a summary:
 - Editable test scope (test directories only)
 - Branch name
 - Risk analysis: total functions scored, high/medium/low risk counts (if run)
+- Recon: tech stack, high-risk entry points count, trust boundaries count
 - Coverage: enabled/disabled
 - Number of coverage gaps / known bugs / initial ideas
 - Multi-agent plan (if configured)
